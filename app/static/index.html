@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GigaNova</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <div>
+        <h1>GigaNova</h1>
+        <p class="tagline">Your AI market desk</p>
+      </div>
+      <div id="usage" class="usage"></div>
+    </header>
+
+    <main id="chat"></main>
+
+    <form id="form" class="composer">
+      <textarea id="input" rows="2" placeholder="Ask about a ticker, e.g. What moved NVDA this week?"></textarea>
+      <button type="submit" id="send">Ask</button>
+    </form>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
