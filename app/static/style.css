@@ -84,6 +84,10 @@ h1 {
   border: 1px solid var(--border);
 }
 
+.msg.assistant strong {
+  color: #dbe6ff;
+}
+
 .msg.error {
   align-self: center;
   background: #3a1820;

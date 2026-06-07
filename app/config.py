@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str
     claude_model: str = "claude-haiku-4-5-20251001"
-    claude_max_tokens: int = 768
+    claude_max_tokens: int = 1400
     claude_max_tool_rounds: int = 2
 
     monthly_budget_usd: float = 15.0

@@ -4,10 +4,25 @@ const input = document.getElementById("input");
 const send = document.getElementById("send");
 const usageEl = document.getElementById("usage");
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatAssistant(text) {
+  return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
 function addMessage(text, role) {
   const div = document.createElement("div");
   div.className = `msg ${role}`;
-  div.textContent = text;
+  if (role === "assistant") {
+    div.innerHTML = formatAssistant(text);
+  } else {
+    div.textContent = text;
+  }
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
