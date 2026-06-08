@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -8,10 +9,18 @@ from pydantic import BaseModel, Field
 from app.chat.agent import ask_analyst
 from app.config import settings
 from app.limits.budget import BudgetExceeded, RateLimitExceeded, get_usage_summary
+from app.market.ticker_registry import get_registry, initialize_market_data
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="GigaNova", description="AI market desk")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    initialize_market_data()
+    yield
+
+
+app = FastAPI(title="GigaNova", description="AI market desk", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -31,7 +40,7 @@ def index() -> FileResponse:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "name": "GigaNova"}
+    return {"status": "ok", "name": "GigaNova", "ticker_registry": get_registry().status()}
 
 
 @app.get("/api/config")

@@ -20,6 +20,19 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
+On startup, GigaNova loads a cached ticker registry from `data/ticker_registry.json` (no network delay). A background job refreshes it at most once per week from public sources:
+
+- US: SEC + NASDAQ symbol lists
+- International: [Adanos free ticker database](https://github.com/adanos-software/free-ticker-database) (`listings.csv`), mapped to Yahoo Finance symbols (e.g. `7203.T`, `SAP.DE`, `SHEL.L`)
+
+Index phrase mappings: `app/market/data/index_aliases.json`. Nickname overrides: `app/market/data/company_overrides.json`.
+
+Manual refresh (or weekly cron):
+
+```bash
+python -m app.market.ticker_registry --force
+```
+
 ## Configuration
 
 All limits and pricing live in `.env`. Copy from `.env.example` and adjust:

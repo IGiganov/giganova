@@ -1,0 +1,22 @@
+[
+  {
+    "phrases": ["s&p 500", "s&p500", "sp500", "sp 500", "s&p", "spx"],
+    "tickers": ["^GSPC"]
+  },
+  {
+    "phrases": ["nasdaq composite", "nasdaq", "ndx"],
+    "tickers": ["^IXIC"]
+  },
+  {
+    "phrases": ["dow jones", "djia", "dow"],
+    "tickers": ["^DJI"]
+  },
+  {
+    "phrases": ["russell 2000", "russell"],
+    "tickers": ["^RUT"]
+  },
+  {
+    "phrases": ["stock market", "equity market", "equities", "the market", "markets", "market"],
+    "tickers": ["^GSPC", "^IXIC"]
+  }
+]

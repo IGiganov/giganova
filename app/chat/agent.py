@@ -29,12 +29,13 @@ def _no_data_answer(tickers: list) -> str:
 def _clarify_answer(resolution: QueryResolution) -> str:
     token = resolution.unresolved or "that symbol"
     return (
-        f"I couldn't match **{token}** to a US stock or index in our feed.\n\n"
+        f"I couldn't match **{token}** to a stock or index in our feed.\n\n"
         "Could you clarify? For example:\n"
-        "- **Ticker:** AAPL, NVDA, MSFT\n"
+        "- **US ticker:** AAPL, NVDA, MSFT\n"
+        "- **International:** SAP.DE, 7203.T, ROSN.ME\n"
         "- **Index:** NASDAQ, S&P 500, Dow\n"
-        "- **Company name:** Apple, Nvidia, Tesla\n\n"
-        "Once I know the symbol, I'll pull live price data and headlines for you."
+        "- **Company name:** Apple, Toyota, Rosneft\n\n"
+        "Once I know the symbol, I'll pull price data and headlines for you."
     )
 
 
