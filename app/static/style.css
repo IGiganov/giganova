@@ -69,23 +69,108 @@ h1 {
   max-width: 90%;
   padding: 12px 14px;
   border-radius: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.msg.user {
-  align-self: flex-end;
-  background: var(--user);
+  line-height: 1.55;
 }
 
 .msg.assistant {
   align-self: flex-start;
   background: var(--assistant);
   border: 1px solid var(--border);
+  max-width: 95%;
+  padding: 16px 18px;
 }
 
-.msg.assistant strong {
-  color: #dbe6ff;
+.analyst-note .section-title {
+  margin: 18px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.analyst-note .section-title:first-child {
+  margin-top: 0;
+}
+
+.analyst-note .note-paragraph {
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.analyst-note .note-list {
+  margin: 0 0 12px;
+  padding-left: 1.35rem;
+}
+
+.analyst-note .note-list ul {
+  list-style: disc;
+}
+
+.analyst-note ul.note-list li {
+  margin-bottom: 10px;
+  color: #d8e0ff;
+  display: list-item;
+}
+
+.analyst-note ol.note-list li {
+  margin-bottom: 10px;
+  color: #d8e0ff;
+  display: list-item;
+  padding-left: 4px;
+}
+
+.analyst-note .watch-list {
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analyst-note .watch-item {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.analyst-note .watch-num {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.analyst-note .watch-body {
+  color: #d8e0ff;
+  line-height: 1.55;
+}
+
+.analyst-note .note-list li strong {
+  color: #eef2ff;
+  font-weight: 600;
+}
+
+.analyst-note .sources {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(110, 168, 255, 0.12);
+  border: 1px solid rgba(110, 168, 255, 0.22);
+  color: #9eb8f7;
+  font-size: 0.78rem;
+  white-space: normal;
+}
+
+.msg.assistant:not(:has(.analyst-note)) {
+  white-space: pre-wrap;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: var(--user);
+  white-space: pre-wrap;
 }
 
 .msg.error {
@@ -93,6 +178,7 @@ h1 {
   background: #3a1820;
   border: 1px solid #7a3040;
   color: #ffb4c0;
+  white-space: pre-wrap;
 }
 
 .composer {

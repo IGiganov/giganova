@@ -11,12 +11,24 @@ def _normalize_ticker(ticker: str) -> str:
 
 def get_quote(ticker: str) -> dict:
     symbol = _normalize_ticker(ticker)
-    stock = yf.Ticker(symbol)
-    info = stock.info or {}
-    fast = stock.fast_info
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info or {}
+        fast = stock.fast_info
 
-    price = info.get("regularMarketPrice") or getattr(fast, "last_price", None)
-    prev_close = info.get("regularMarketPreviousClose") or getattr(fast, "previous_close", None)
+        price = info.get("regularMarketPrice")
+        prev_close = info.get("regularMarketPreviousClose")
+        if price is None:
+            price = getattr(fast, "last_price", None)
+        if prev_close is None:
+            prev_close = getattr(fast, "previous_close", None)
+    except Exception as exc:
+        return {
+            "ticker": symbol,
+            "error": f"Quote unavailable: {exc}",
+            "as_of": datetime.now(timezone.utc).isoformat(),
+        }
+
     change_pct = None
     if price is not None and prev_close:
         change_pct = round(((price - prev_close) / prev_close) * 100, 2)

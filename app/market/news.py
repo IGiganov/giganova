@@ -38,3 +38,28 @@ def get_news(ticker: str, limit: Optional[int] = None) -> dict:
         "headlines": items,
         "as_of": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def get_news_with_fallback(ticker: str, fallbacks: Optional[list] = None, limit: Optional[int] = None) -> dict:
+    candidates = []
+    for symbol in [ticker] + (fallbacks or []):
+        normalized = _normalize_ticker(symbol)
+        if normalized not in candidates:
+            candidates.append(normalized)
+
+    for symbol in candidates:
+        result = get_news(symbol, limit=limit)
+        if result["count"] > 0:
+            result["source_ticker"] = symbol
+            result["requested_ticker"] = _normalize_ticker(ticker)
+            return result
+
+    return {
+        "ticker": _normalize_ticker(ticker),
+        "requested_ticker": _normalize_ticker(ticker),
+        "source_ticker": None,
+        "count": 0,
+        "headlines": [],
+        "as_of": datetime.now(timezone.utc).isoformat(),
+        "error": "No news found.",
+    }

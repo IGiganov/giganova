@@ -2,23 +2,40 @@ import json
 
 from anthropic import Anthropic
 
-from app.chat.prompts import SYSTEM_PROMPT, TOOLS
+from app.chat.prompts import GENERAL_PROMPT, SYSTEM_PROMPT
 from app.config import settings
 from app.limits.budget import check_limits, record_request, record_usage
-from app.market.news import get_news
-from app.market.quotes import compare_tickers, get_price_summary, get_quote
+from app.market.context import build_market_context
+from app.market.resolver import QueryResolution, is_market_question, resolve_query_full, symbol_label
 
 
-def _run_tool(name: str, tool_input: dict) -> dict:
-    if name == "get_quote":
-        return get_quote(tool_input["ticker"])
-    if name == "get_price_summary":
-        return get_price_summary(tool_input["ticker"], tool_input.get("period", "1mo"))
-    if name == "get_news":
-        return get_news(tool_input["ticker"], tool_input.get("limit"))
-    if name == "compare_tickers":
-        return compare_tickers(tool_input["tickers"], tool_input.get("period", "1mo"))
-    return {"error": f"Unknown tool: {name}"}
+def _usage_payload(input_tokens: int, output_tokens: int) -> dict:
+    cost = record_usage(input_tokens, output_tokens)
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "estimated_cost_usd": cost,
+    }
+
+
+def _no_data_answer(tickers: list) -> str:
+    labels = ", ".join(symbol_label(t) for t in tickers)
+    return (
+        f"I couldn't retrieve usable market data or news for **{labels}** from the feed right now.\n\n"
+        "Please try again later, or ask about a specific ticker (e.g. AAPL, QQQ, ^GSPC)."
+    )
+
+
+def _clarify_answer(resolution: QueryResolution) -> str:
+    token = resolution.unresolved or "that symbol"
+    return (
+        f"I couldn't match **{token}** to a US stock or index in our feed.\n\n"
+        "Could you clarify? For example:\n"
+        "- **Ticker:** AAPL, NVDA, MSFT\n"
+        "- **Index:** NASDAQ, S&P 500, Dow\n"
+        "- **Company name:** Apple, Nvidia, Tesla\n\n"
+        "Once I know the symbol, I'll pull live price data and headlines for you."
+    )
 
 
 def ask_analyst(message: str) -> dict:
@@ -26,58 +43,59 @@ def ask_analyst(message: str) -> dict:
     record_request()
 
     client = Anthropic(api_key=settings.anthropic_api_key)
-    messages = [{"role": "user", "content": message}]
 
-    total_input = 0
-    total_output = 0
+    if is_market_question(message):
+        resolution = resolve_query_full(message)
 
-    for _ in range(settings.claude_max_tool_rounds + 1):
+        if resolution.unresolved:
+            return {"answer": _clarify_answer(resolution), "usage": _usage_payload(0, 0)}
+
+        if not resolution.tickers:
+            return {"answer": _clarify_answer(resolution), "usage": _usage_payload(0, 0)}
+
+        context = build_market_context(resolution.tickers, resolution.period)
+
+        if not context["has_any_data"]:
+            return {"answer": _no_data_answer(resolution.tickers), "usage": _usage_payload(0, 0)}
+
+        correction_note = ""
+        if resolution.corrections:
+            joined = ", ".join(resolution.corrections)
+            correction_note = (
+                f"Auto-corrections applied: {joined}. "
+                "Briefly note the interpreted symbol in the Executive Summary if helpful. "
+                "Do not ask the user to re-type.\n\n"
+            )
+
         response = client.messages.create(
             model=settings.claude_model,
             max_tokens=settings.claude_max_tokens,
             system=SYSTEM_PROMPT,
-            tools=TOOLS,
-            messages=messages,
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"{correction_note}"
+                        f"Prefetched market data (JSON):\n{json.dumps(context, default=str)}\n\n"
+                        f"User question: {message}"
+                    ),
+                }
+            ],
         )
+        answer = "".join(block.text for block in response.content if block.type == "text").strip()
+        return {
+            "answer": answer,
+            "usage": _usage_payload(response.usage.input_tokens, response.usage.output_tokens),
+        }
 
-        total_input += response.usage.input_tokens
-        total_output += response.usage.output_tokens
-
-        if response.stop_reason != "tool_use":
-            text_blocks = [block.text for block in response.content if block.type == "text"]
-            cost = record_usage(total_input, total_output)
-            return {
-                "answer": "\n".join(text_blocks).strip(),
-                "usage": {
-                    "input_tokens": total_input,
-                    "output_tokens": total_output,
-                    "estimated_cost_usd": cost,
-                },
-            }
-
-        tool_results = []
-        assistant_content = []
-        for block in response.content:
-            assistant_content.append(block)
-            if block.type == "tool_use":
-                result = _run_tool(block.name, block.input)
-                tool_results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": json.dumps(result),
-                    }
-                )
-
-        messages.append({"role": "assistant", "content": assistant_content})
-        messages.append({"role": "user", "content": tool_results})
-
-    cost = record_usage(total_input, total_output)
+    response = client.messages.create(
+        model=settings.claude_model,
+        max_tokens=settings.claude_max_tokens,
+        system=GENERAL_PROMPT,
+        messages=[{"role": "user", "content": message}],
+    )
+    answer = "".join(block.text for block in response.content if block.type == "text").strip()
     return {
-        "answer": "I couldn't finish the analysis within the tool limit. Try a simpler question.",
-        "usage": {
-            "input_tokens": total_input,
-            "output_tokens": total_output,
-            "estimated_cost_usd": cost,
-        },
+        "answer": answer,
+        "usage": _usage_payload(response.usage.input_tokens, response.usage.output_tokens),
     }
