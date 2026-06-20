@@ -1,3 +1,4 @@
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -9,9 +10,19 @@ from pydantic import BaseModel, Field
 from app.chat.agent import ask_analyst
 from app.config import settings
 from app.limits.budget import BudgetExceeded, RateLimitExceeded, get_usage_summary
+from app.market.quotes import get_quote
 from app.market.ticker_registry import get_registry, initialize_market_data
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+MARKET_BAR_TICKERS = [
+    ("^GSPC", "S&P 500"),
+    ("^IXIC", "NASDAQ"),
+    ("^DJI", "DOW"),
+    ("^RUT", "RUSSELL"),
+]
+_market_cache: dict = {"ts": 0.0, "data": None}
+MARKET_CACHE_TTL_SECONDS = 60
 
 
 @asynccontextmanager
@@ -56,6 +67,30 @@ def public_config() -> dict:
 @app.get("/api/usage")
 def usage() -> dict:
     return get_usage_summary()
+
+
+@app.get("/api/markets")
+def markets() -> dict:
+    now = time.time()
+    if _market_cache["data"] and now - _market_cache["ts"] < MARKET_CACHE_TTL_SECONDS:
+        return _market_cache["data"]
+
+    indices = []
+    for symbol, label in MARKET_BAR_TICKERS:
+        quote = get_quote(symbol)
+        indices.append(
+            {
+                "symbol": symbol,
+                "label": label,
+                "price": quote.get("price"),
+                "change_pct": quote.get("change_pct_day"),
+            }
+        )
+
+    payload = {"indices": indices}
+    _market_cache["ts"] = now
+    _market_cache["data"] = payload
+    return payload
 
 
 @app.post("/api/chat", response_model=ChatResponse)

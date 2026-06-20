@@ -38,6 +38,28 @@ function parseSectionHeader(line) {
 const PUBLISHER =
   /^(?:Yahoo Finance|Barron's|Reuters|IBD|Fortune|WSJ|The Wall Street Journal|Motley Fool|Investor's Business Daily|Wall Street Journal)(?:,\s*(?:Yahoo Finance|Barron's|Reuters|IBD|Fortune|WSJ|The Wall Street Journal|Motley Fool|Investor's Business Daily|Wall Street Journal))*\.?$/i;
 
+const UP_WORDS =
+  /\b(up|gained?|gains|rose|risen|jumped?|climbed?|higher|surged?|rallied|advanced|added|soared|popped)(\s+)<span class="num">/gi;
+const DOWN_WORDS =
+  /\b(down|fell|fall|dropped?|lower|declined?|slid|slipped?|sank|lost|losses|loss|tumbled?|plunged?|sank|shed|slumped?)(\s+)<span class="num">/gi;
+
+function colorNumbers(html) {
+  html = html.replace(/(\$\d[\d,]*(?:\.\d+)?)/g, '<span class="num">$1</span>');
+  html = html.replace(/\b(\d{1,3}(?:,\d{3})+(?:\.\d+)?)\b/g, '<span class="num">$1</span>');
+  html = html.replace(/([+-]?\d[\d,]*(?:\.\d+)?\s*%)/g, (match) => {
+    const trimmed = match.trim();
+    const cls = trimmed.startsWith("+")
+      ? "num up"
+      : trimmed.startsWith("-")
+      ? "num down"
+      : "num";
+    return `<span class="${cls}">${match}</span>`;
+  });
+  html = html.replace(UP_WORDS, '$1$2<span class="num up">');
+  html = html.replace(DOWN_WORDS, '$1$2<span class="num down">');
+  return html;
+}
+
 function formatInline(text) {
   let html = escapeHtml(text);
   html = html.replace(/^([A-Z][^.]{2,60}\.)\s/, "<strong>$1</strong> ");
@@ -52,6 +74,7 @@ function formatInline(text) {
     /\s((?:Yahoo Finance|Barron's|Reuters|IBD|Fortune|WSJ|The Wall Street Journal|Motley Fool|Investor's Business Daily|Wall Street Journal)(?:,\s*(?:Yahoo Finance|Barron's|Reuters|IBD|Fortune|WSJ|The Wall Street Journal|Motley Fool|Investor's Business Daily|Wall Street Journal))*)\.?\s*$/,
     ' <span class="sources">$1</span>'
   );
+  html = colorNumbers(html);
   return html;
 }
 
@@ -187,7 +210,52 @@ function addMessage(text, role) {
 async function refreshUsage() {
   const res = await fetch("/api/usage");
   const data = await res.json();
-  usageEl.textContent = `$${data.spent_usd.toFixed(2)} / $${data.monthly_budget_usd.toFixed(2)} this month · ${data.model}`;
+  usageEl.textContent = `$${data.spent_usd.toFixed(2)} / $${data.monthly_budget_usd.toFixed(2)} · ${data.model}`;
+}
+
+const tickerEl = document.getElementById("ticker");
+
+function fmtPrice(value) {
+  if (value === null || value === undefined) return "—";
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function fmtChange(pct) {
+  if (pct === null || pct === undefined) return { text: "—", cls: "flat" };
+  const cls = pct > 0 ? "up" : pct < 0 ? "down" : "flat";
+  const sign = pct > 0 ? "+" : "";
+  const arrow = pct > 0 ? "▲" : pct < 0 ? "▼" : "•";
+  return { text: `${arrow} ${sign}${pct.toFixed(2)}%`, cls };
+}
+
+function renderTickerSkeleton() {
+  const cells = ["S&P 500", "NASDAQ", "DOW", "RUSSELL"]
+    .map(
+      (label) =>
+        `<div class="ticker-cell loading"><span class="t-label">${label}</span><span class="t-price">····</span><span class="t-change flat">—</span></div>`
+    )
+    .join("");
+  tickerEl.innerHTML = cells;
+}
+
+async function refreshTicker() {
+  try {
+    const res = await fetch("/api/markets");
+    const data = await res.json();
+    tickerEl.innerHTML = data.indices
+      .map((idx) => {
+        const change = fmtChange(idx.change_pct);
+        return `<div class="ticker-cell"><span class="t-label">${idx.label}</span><span class="t-price">${fmtPrice(
+          idx.price
+        )}</span><span class="t-change ${change.cls}">${change.text}</span></div>`;
+      })
+      .join("");
+  } catch (err) {
+    /* keep skeleton on failure */
+  }
 }
 
 form.addEventListener("submit", async (event) => {
@@ -220,7 +288,10 @@ form.addEventListener("submit", async (event) => {
 });
 
 addMessage(
-  "Ask me about US stocks — quotes, recent moves, or headlines. Example: \"Summarize AAPL price action and news this month.\"",
+  "Ask me about stocks — quotes, recent moves, or headlines. Example: \"Summarize AAPL price action and news this month.\"",
   "assistant"
 );
 refreshUsage();
+renderTickerSkeleton();
+refreshTicker();
+setInterval(refreshTicker, 60000);
