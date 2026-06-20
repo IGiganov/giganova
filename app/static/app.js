@@ -3,6 +3,208 @@ const form = document.getElementById("form");
 const input = document.getElementById("input");
 const send = document.getElementById("send");
 const usageEl = document.getElementById("usage");
+const logoutBtn = document.getElementById("logout");
+
+const accountBtn = document.getElementById("account-btn");
+const accountMenu = document.getElementById("account-menu");
+const accountInitial = document.getElementById("account-initial");
+const accountUsername = document.getElementById("account-username");
+const changePwBtn = document.getElementById("change-pw-btn");
+const editProfileBtn = document.getElementById("edit-profile-btn");
+
+const profileModal = document.getElementById("profile-modal");
+const profileForm = document.getElementById("profile-form");
+const profileFirst = document.getElementById("profile-first");
+const profileLast = document.getElementById("profile-last");
+const profileMessage = document.getElementById("profile-message");
+const profileCancel = document.getElementById("profile-cancel");
+
+let currentUser = null;
+
+const pwModal = document.getElementById("pw-modal");
+const pwForm = document.getElementById("pw-form");
+const pwCurrent = document.getElementById("pw-current");
+const pwNew = document.getElementById("pw-new");
+const pwConfirm = document.getElementById("pw-confirm");
+const pwMessage = document.getElementById("pw-message");
+const pwCancel = document.getElementById("pw-cancel");
+
+async function ensureAuth() {
+  try {
+    const res = await fetch("/api/me");
+    if (!res.ok) {
+      window.location.href = "/login";
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    window.location.href = "/login";
+    return null;
+  }
+}
+
+function setAccount(me) {
+  currentUser = me;
+  if (!me || !me.username) {
+    if (accountBtn) accountBtn.hidden = true;
+    return;
+  }
+  const display = me.display_name || me.username;
+  if (accountInitial) accountInitial.textContent = display.charAt(0).toUpperCase();
+  if (accountUsername) accountUsername.textContent = display;
+}
+
+function toggleMenu(open) {
+  if (!accountMenu || !accountBtn) return;
+  const show = open ?? accountMenu.hidden;
+  accountMenu.hidden = !show;
+  accountBtn.setAttribute("aria-expanded", String(show));
+}
+
+if (accountBtn) {
+  accountBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!accountMenu.hidden && !accountMenu.contains(e.target) && e.target !== accountBtn) {
+      toggleMenu(false);
+    }
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await fetch("/api/logout", { method: "POST" });
+    window.location.href = "/login";
+  });
+}
+
+function openPwModal() {
+  toggleMenu(false);
+  pwMessage.hidden = true;
+  pwForm.reset();
+  pwModal.hidden = false;
+  pwCurrent.focus();
+}
+
+function closePwModal() {
+  pwModal.hidden = true;
+}
+
+function splitName(display) {
+  const parts = (display || "").trim().split(/\s+/).filter(Boolean);
+  return { first: parts[0] || "", last: parts.slice(1).join(" ") || "" };
+}
+
+function openProfileModal() {
+  toggleMenu(false);
+  profileMessage.hidden = true;
+  profileMessage.style.color = "";
+  const display = currentUser && currentUser.full_name ? currentUser.full_name : "";
+  const { first, last } = splitName(display);
+  profileFirst.value = first;
+  profileLast.value = last;
+  profileModal.hidden = false;
+  profileFirst.focus();
+}
+
+function closeProfileModal() {
+  profileModal.hidden = true;
+}
+
+if (editProfileBtn) editProfileBtn.addEventListener("click", openProfileModal);
+if (profileCancel) profileCancel.addEventListener("click", closeProfileModal);
+if (profileModal) {
+  profileModal.addEventListener("click", (e) => {
+    if (e.target === profileModal) closeProfileModal();
+  });
+}
+
+if (profileForm) {
+  profileForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    profileMessage.hidden = true;
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: profileFirst.value.trim(),
+          last_name: profileLast.value.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        profileMessage.textContent = data.detail || "Could not update profile.";
+        profileMessage.hidden = false;
+        return;
+      }
+      if (currentUser) {
+        currentUser.full_name = data.full_name;
+        currentUser.display_name = data.display_name;
+        setAccount(currentUser);
+      }
+      profileMessage.style.color = "var(--up)";
+      profileMessage.textContent = "Profile updated.";
+      profileMessage.hidden = false;
+      setTimeout(closeProfileModal, 800);
+    } catch (err) {
+      profileMessage.textContent = "Network error. Try again.";
+      profileMessage.hidden = false;
+    }
+  });
+}
+
+if (changePwBtn) changePwBtn.addEventListener("click", openPwModal);
+if (pwCancel) pwCancel.addEventListener("click", closePwModal);
+if (pwModal) {
+  pwModal.addEventListener("click", (e) => {
+    if (e.target === pwModal) closePwModal();
+  });
+}
+
+if (pwForm) {
+  pwForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    pwMessage.hidden = true;
+
+    if (pwNew.value.length < 8) {
+      pwMessage.textContent = "New password must be at least 8 characters.";
+      pwMessage.hidden = false;
+      return;
+    }
+    if (pwNew.value !== pwConfirm.value) {
+      pwMessage.textContent = "New passwords do not match.";
+      pwMessage.hidden = false;
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_password: pwCurrent.value,
+          new_password: pwNew.value,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pwMessage.textContent = data.detail || "Could not change password.";
+        pwMessage.hidden = false;
+        return;
+      }
+      pwMessage.style.color = "var(--up)";
+      pwMessage.textContent = "Password updated.";
+      pwMessage.hidden = false;
+      setTimeout(closePwModal, 900);
+    } catch (err) {
+      pwMessage.textContent = "Network error. Try again.";
+      pwMessage.hidden = false;
+    }
+  });
+}
 
 const DISCLAIMER = /informational only, not investment advice\.?/gi;
 
@@ -258,6 +460,13 @@ async function refreshTicker() {
   }
 }
 
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    if (input.value.trim()) form.requestSubmit();
+  }
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = input.value.trim();
@@ -274,6 +483,10 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({ message }),
     });
     const data = await res.json();
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
     if (!res.ok) {
       addMessage(data.detail || "Request failed.", "error");
     } else {
@@ -287,11 +500,32 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-addMessage(
-  "Ask me about stocks — quotes, recent moves, or headlines. Example: \"Summarize AAPL price action and news this month.\"",
-  "assistant"
-);
-refreshUsage();
-renderTickerSkeleton();
-refreshTicker();
-setInterval(refreshTicker, 60000);
+function greeting(displayName) {
+  const hour = new Date().getHours();
+  const partOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const first = (displayName || "").trim().split(/\s+/)[0];
+  const name = first
+    ? first.charAt(0).toUpperCase() + first.slice(1)
+    : "there";
+  return (
+    `**Good ${partOfDay}, ${name}.** What would you like to know?\n\n` +
+    "Ask me about stocks — quotes, recent moves, or headlines. " +
+    'Example: "Summarize AAPL price action and news this month."'
+  );
+}
+
+async function boot() {
+  const me = await ensureAuth();
+  if (!me) {
+    return;
+  }
+  setAccount(me);
+
+  addMessage(greeting(me.display_name || me.username), "assistant");
+  refreshUsage();
+  renderTickerSkeleton();
+  refreshTicker();
+  setInterval(refreshTicker, 60000);
+}
+
+boot();

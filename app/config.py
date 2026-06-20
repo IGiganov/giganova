@@ -39,6 +39,14 @@ class Settings(BaseSettings):
         "GigaNova personal research (contact: you@example.com)"
     )
 
+    auth_enabled: bool = True
+    users_db_path: str = "data/users.sqlite3"
+    auth_secret_key: str = "change-me-use-a-long-random-string-in-production"
+    # Optional recovery/bootstrap admin (used only as a fallback alongside DB users).
+    auth_username: str = ""
+    auth_password_hash: str = ""
+    auth_password: str = ""
+
     def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
         input_cost = (input_tokens / 1_000_000) * self.input_price_per_million
         output_cost = (output_tokens / 1_000_000) * self.output_price_per_million

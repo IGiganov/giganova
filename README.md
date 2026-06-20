@@ -33,6 +33,39 @@ Manual refresh (or weekly cron):
 python -m app.market.ticker_registry --force
 ```
 
+## Login
+
+GigaNova has an internal login. Accounts live in a small SQLite database
+(`data/users.sqlite3`) with passwords stored as a **bcrypt hash**, never in plaintext.
+
+- **First run:** open the app and you'll be sent to `/setup` to create your account
+  (username + password). No password is needed in `.env`.
+- **Change password:** click the orange account button (top right) → *Change password*.
+- **Session:** a signed cookie that lasts 14 days.
+
+Minimal `.env`:
+
+```env
+AUTH_ENABLED=true
+AUTH_SECRET_KEY=<long-random-string>  # signs the session cookie
+```
+
+Set `AUTH_ENABLED=false` to disable login for local dev.
+
+### Optional recovery admin
+
+If you ever lock yourself out, you can define a fallback admin in `.env`. It only
+works when **both** a username and a password (or hash) are set:
+
+```bash
+python -m app.hash_password      # → prints a bcrypt hash
+```
+
+```env
+AUTH_USERNAME=admin
+AUTH_PASSWORD_HASH=$2b$12$....    # from the command above
+```
+
 ## Configuration
 
 All limits and pricing live in `.env`. Copy from `.env.example` and adjust:

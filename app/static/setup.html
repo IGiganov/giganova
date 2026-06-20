@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Set up · GigaNova</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/style.css?v=6" />
+</head>
+<body>
+  <div class="layout layout-login">
+    <header class="login-header">
+      <div class="brand">
+        <h1>Giga<span class="spark">Nova</span></h1>
+        <p class="tagline">AI market desk</p>
+      </div>
+    </header>
+
+    <div class="login-panel">
+      <h2 class="login-title">Create your account</h2>
+      <p class="login-subtitle">First-time setup — choose your login. This is stored securely (hashed).</p>
+
+      <form id="setup-form" class="login-form">
+        <div class="field-row">
+          <label class="login-field">
+            <span>First name</span>
+            <input id="first_name" name="first_name" type="text" autocomplete="given-name" required />
+          </label>
+          <label class="login-field">
+            <span>Last name</span>
+            <input id="last_name" name="last_name" type="text" autocomplete="family-name" required />
+          </label>
+        </div>
+        <label class="login-field">
+          <span>Username</span>
+          <input id="username" name="username" type="text" autocomplete="username" minlength="3" required />
+        </label>
+        <label class="login-field">
+          <span>Password</span>
+          <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label class="login-field">
+          <span>Confirm password</span>
+          <input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <p class="login-hint">At least 8 characters.</p>
+        <p id="setup-error" class="login-error" hidden></p>
+        <button type="submit" id="setup-btn">Create account</button>
+      </form>
+    </div>
+  </div>
+  <script src="/static/setup.js?v=2"></script>
+</body>
+</html>

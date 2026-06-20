@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=7" />
 </head>
 <body>
   <div class="layout">
@@ -22,18 +22,80 @@
       <div class="header-right">
         <span class="live"><span class="dot"></span>Live</span>
         <div id="usage" class="usage"></div>
+        <div class="account">
+          <button type="button" id="account-btn" class="account-btn" aria-haspopup="true" aria-expanded="false">
+            <span id="account-initial" class="account-initial">?</span>
+          </button>
+          <div id="account-menu" class="account-menu" hidden>
+            <div class="account-menu-head">
+              <span class="account-menu-label">Signed in as</span>
+              <span id="account-username" class="account-menu-user">—</span>
+            </div>
+            <button type="button" id="edit-profile-btn" class="account-menu-item">Edit profile</button>
+            <button type="button" id="change-pw-btn" class="account-menu-item">Change password</button>
+            <button type="button" id="logout" class="account-menu-item">Sign out</button>
+          </div>
+        </div>
       </div>
     </header>
+
+    <div id="profile-modal" class="modal" hidden>
+      <div class="modal-card">
+        <h2 class="login-title">Edit profile</h2>
+        <form id="profile-form" class="login-form">
+          <div class="field-row">
+            <label class="login-field">
+              <span>First name</span>
+              <input id="profile-first" type="text" autocomplete="given-name" required />
+            </label>
+            <label class="login-field">
+              <span>Last name</span>
+              <input id="profile-last" type="text" autocomplete="family-name" required />
+            </label>
+          </div>
+          <p id="profile-message" class="login-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" id="profile-cancel" class="btn-ghost">Cancel</button>
+            <button type="submit" id="profile-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="pw-modal" class="modal" hidden>
+      <div class="modal-card">
+        <h2 class="login-title">Change password</h2>
+        <form id="pw-form" class="login-form">
+          <label class="login-field">
+            <span>Current password</span>
+            <input id="pw-current" type="password" autocomplete="current-password" required />
+          </label>
+          <label class="login-field">
+            <span>New password</span>
+            <input id="pw-new" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label class="login-field">
+            <span>Confirm new password</span>
+            <input id="pw-confirm" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <p id="pw-message" class="login-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" id="pw-cancel" class="btn-ghost">Cancel</button>
+            <button type="submit" id="pw-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div id="ticker" class="ticker-bar"></div>
 
     <main id="chat"></main>
 
     <form id="form" class="composer">
-      <textarea id="input" rows="2" placeholder="Ask about a ticker, e.g. What moved NVDA this week?"></textarea>
+      <textarea id="input" rows="2" placeholder="Ask about a ticker, e.g. What moved NVDA this week?  (Enter to send · Shift+Enter for new line)"></textarea>
       <button type="submit" id="send">Ask</button>
     </form>
   </div>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>

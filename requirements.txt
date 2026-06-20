@@ -4,3 +4,5 @@ anthropic>=0.42.0
 yfinance>=0.2.50
 pydantic-settings>=2.6.0
 python-dotenv>=1.0.1
+itsdangerous>=2.0.0
+bcrypt>=4.0.0
